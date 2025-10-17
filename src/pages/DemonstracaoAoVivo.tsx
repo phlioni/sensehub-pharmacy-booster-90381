@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Play, Pause } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 const DemonstracaoAoVivo = () => {
+  const { toast } = useToast();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
@@ -78,26 +80,51 @@ const DemonstracaoAoVivo = () => {
 
   // Capture frame and analyze
   const captureAndAnalyze = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    console.log('🎥 Iniciando captura e análise...');
+    
+    if (!videoRef.current || !canvasRef.current) {
+      console.log('❌ Video ou canvas não disponível');
+      return;
+    }
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
+    
+    if (!video.videoWidth || !video.videoHeight) {
+      console.log('❌ Video ainda não está pronto');
+      return;
+    }
     
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('❌ Contexto do canvas não disponível');
+      return;
+    }
 
     ctx.drawImage(video, 0, 0);
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    console.log('📸 Frame capturado, tamanho:', imageData.length, 'bytes');
 
     try {
+      console.log('🚀 Enviando para análise...');
       const { data, error } = await supabase.functions.invoke('analyze-emotion', {
         body: { image: imageData }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro na análise:', error);
+        toast({
+          title: "Erro na análise",
+          description: error.message || "Não foi possível analisar a emoção",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Análise recebida:', data);
 
       if (data) {
         setCurrentEmotion(data.emotion);
@@ -110,9 +137,16 @@ const DemonstracaoAoVivo = () => {
           attention: data.attention,
           timestamp: currentTime
         }]);
+
+        console.log('📊 Estado atualizado - Emoção:', data.emotion, 'Confiança:', data.confidence, 'Atenção:', data.attention);
       }
     } catch (error) {
-      console.error('Error analyzing emotion:', error);
+      console.error('❌ Erro em captureAndAnalyze:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao processar análise",
+        variant: "destructive",
+      });
     }
   };
 
