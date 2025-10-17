@@ -26,19 +26,28 @@ export interface EmotionAnalysis {
 
 export async function analyzeFace(videoElement: HTMLVideoElement): Promise<EmotionAnalysis | null> {
   if (!modelsLoaded) {
+    console.log('🔄 Carregando modelos antes da análise...');
     await loadFaceModels();
   }
 
+  console.log('🔍 Iniciando detecção facial...');
+  
   const detections = await faceapi
-    .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+    .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({
+      inputSize: 224,
+      scoreThreshold: 0.5
+    }))
     .withFaceLandmarks()
     .withFaceExpressions();
 
   if (!detections) {
+    console.log('⚠️ Nenhuma detecção retornada pelo face-api');
     return null;
   }
 
+  console.log('✅ Rosto detectado, analisando expressões...');
   const expressions = detections.expressions;
+  console.log('📊 Expressões detectadas:', expressions);
   
   // Map face-api emotions to our emotion names
   const emotionMap: { [key: string]: string } = {

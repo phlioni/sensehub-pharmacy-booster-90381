@@ -100,24 +100,38 @@ const DemonstracaoAoVivo = () => {
   // Capture frame and analyze with face-api
   const captureAndAnalyze = async () => {
     if (!videoRef.current) {
+      console.log('⚠️ Video ref não disponível');
       return;
     }
 
     const video = videoRef.current;
     
     if (!video.videoWidth || !video.videoHeight) {
+      console.log('⚠️ Video ainda não está pronto:', video.readyState);
       return;
     }
+
+    if (video.readyState < 2) {
+      console.log('⚠️ Video readyState insuficiente:', video.readyState);
+      return;
+    }
+
+    console.log('📸 Analisando frame...', { width: video.videoWidth, height: video.videoHeight });
 
     try {
       const analysis = await analyzeFace(video);
 
       if (!analysis) {
-        console.log('⚠️ Nenhum rosto detectado');
+        console.log('⚠️ Nenhum rosto detectado no frame');
         return;
       }
 
-      console.log('✅ Análise facial:', analysis);
+      console.log('✅ Análise facial completa:', {
+        emotion: analysis.emotion,
+        confidence: analysis.confidence,
+        attention: analysis.attention,
+        expressions: analysis.expressions
+      });
 
       setCurrentEmotion(analysis.emotion);
       setEmotionConfidence(analysis.confidence);
