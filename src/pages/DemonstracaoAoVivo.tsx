@@ -426,12 +426,15 @@ const DemonstracaoAoVivo = () => {
                 <p className="text-sm text-muted-foreground">Emoção Predominante</p>
                 <p className="text-2xl font-bold text-success">
                   {showSummary && emotionHistory.length > 0
-                    ? getEmotionState(
-                        emotionHistory.reduce((acc, curr) => 
-                          (emotionHistory.filter(e => e.emotion === curr.emotion).length > 
-                           emotionHistory.filter(e => e.emotion === acc).length) ? curr.emotion : acc
-                        , emotionHistory[0].emotion)
-                      ).label
+                    ? (() => {
+                        const emotionCounts: Record<string, number> = {};
+                        emotionHistory.forEach(item => {
+                          emotionCounts[item.emotion] = (emotionCounts[item.emotion] || 0) + 1;
+                        });
+                        const dominantEmotion = Object.entries(emotionCounts)
+                          .sort((a, b) => b[1] - a[1])[0][0];
+                        return getEmotionState(dominantEmotion).label;
+                      })()
                     : "---"}
                 </p>
               </div>
@@ -445,7 +448,11 @@ const DemonstracaoAoVivo = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {showSummary && emotionHistory.length > 0
-                    ? `Aos ${(emotionHistory.findIndex(e => e.attention === Math.max(...emotionHistory.map(h => h.attention))) * 2)} segundos`
+                    ? (() => {
+                        const maxAttention = Math.max(...emotionHistory.map(h => h.attention));
+                        const peakIndex = emotionHistory.findIndex(e => e.attention === maxAttention);
+                        return `Aos ${Math.round(peakIndex * 1)} segundos`;
+                      })()
                     : ""}
                 </p>
               </div>
