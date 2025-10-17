@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Megaphone, Tag, FileText } from "lucide-react";
+import { LayoutDashboard, Megaphone, Tag, FileText, Presentation } from "lucide-react";
 
 const Sidebar = () => {
   const navItems = [
@@ -7,6 +7,7 @@ const Sidebar = () => {
     { path: "/campanhas", label: "Análise de Campanhas", icon: Megaphone },
     { path: "/produtos", label: "Análise de Produtos", icon: Tag },
     { path: "/relatorios", label: "Gerador de Relatórios", icon: FileText },
+    { path: "/relatorio-executivo", label: "Relatório Executivo", icon: Presentation },
   ];
 
   return (
