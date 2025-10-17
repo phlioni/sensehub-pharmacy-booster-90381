@@ -19,6 +19,12 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          hover: "hsl(var(--sidebar-hover))",
+          active: "hsl(var(--sidebar-active))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -33,14 +39,17 @@ export default {
           foreground: "hsl(var(--success-foreground))",
           light: "hsl(var(--success-light))",
         },
-        insight: {
-          DEFAULT: "hsl(var(--insight))",
-          foreground: "hsl(var(--insight-foreground))",
-          light: "hsl(var(--insight-light))",
+        alert: {
+          DEFAULT: "hsl(var(--alert))",
+          foreground: "hsl(var(--alert-foreground))",
+          light: "hsl(var(--alert-light))",
         },
-        attention: {
-          DEFAULT: "hsl(var(--attention))",
-          foreground: "hsl(var(--attention-foreground))",
+        chart: {
+          blue: "hsl(var(--chart-blue))",
+          purple: "hsl(var(--chart-purple))",
+          orange: "hsl(var(--chart-orange))",
+          green: "hsl(var(--chart-green))",
+          red: "hsl(var(--chart-red))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",

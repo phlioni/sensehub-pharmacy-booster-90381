@@ -1,16 +1,11 @@
-import HeroSection from "@/components/HeroSection";
-import DashboardSection from "@/components/DashboardSection";
-import BenefitsSection from "@/components/BenefitsSection";
-import CTASection from "@/components/CTASection";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import DashboardGeral from "./DashboardGeral";
 
 const Index = () => {
   return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <DashboardSection />
-      <BenefitsSection />
-      <CTASection />
-    </div>
+    <DashboardLayout>
+      <DashboardGeral />
+    </DashboardLayout>
   );
 };
 
