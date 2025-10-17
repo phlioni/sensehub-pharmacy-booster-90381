@@ -60,14 +60,32 @@ const DemonstracaoAoVivo = () => {
       
       // Load face-api models first
       await loadFaceModels();
+      console.log('✅ Modelos carregados com sucesso');
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 640, height: 480 } 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        } 
       });
+      
+      console.log('✅ Stream de câmera obtido');
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✅ Vídeo carregado e pronto:', {
+            width: videoRef.current?.videoWidth,
+            height: videoRef.current?.videoHeight,
+            readyState: videoRef.current?.readyState
+          });
+          videoRef.current?.play();
+        };
+        
         setCameraActive(true);
         
         toast({
@@ -76,10 +94,10 @@ const DemonstracaoAoVivo = () => {
         });
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('❌ Error accessing camera:', error);
       toast({
         title: "Erro",
-        description: "Erro ao acessar a câmera",
+        description: "Erro ao acessar a câmera. Verifique as permissões.",
         variant: "destructive",
       });
     }
@@ -171,11 +189,16 @@ const DemonstracaoAoVivo = () => {
 
   // Analysis interval effect - analyze every second for real-time detection
   useEffect(() => {
+    console.log('📊 Analysis interval effect triggered:', { isPlaying, cameraActive });
+    
     if (isPlaying && cameraActive) {
+      console.log('✅ Iniciando análise contínua a cada 1 segundo');
       analysisIntervalRef.current = setInterval(() => {
+        console.log('⏰ Executando análise agendada...');
         captureAndAnalyze();
       }, 1000); // Analyze every second with face-api
     } else {
+      console.log('⏸️ Parando análise contínua');
       if (analysisIntervalRef.current) {
         clearInterval(analysisIntervalRef.current);
         analysisIntervalRef.current = null;
@@ -184,10 +207,11 @@ const DemonstracaoAoVivo = () => {
 
     return () => {
       if (analysisIntervalRef.current) {
+        console.log('🧹 Limpando interval na desmontagem');
         clearInterval(analysisIntervalRef.current);
       }
     };
-  }, [isPlaying, cameraActive, currentTime]);
+  }, [isPlaying, cameraActive]);
 
   // Cleanup on unmount
   useEffect(() => {
