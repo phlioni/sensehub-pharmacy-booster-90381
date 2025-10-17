@@ -11,8 +11,9 @@ const GeradorRelatorios = () => {
     kpis: true,
     abtest: true,
     heatmap: true,
-    demographics: true,
+    emotional: true,
     insights: true,
+    positioning: true,
   });
 
   const handleGeneratePDF = () => {
@@ -101,7 +102,7 @@ const GeradorRelatorios = () => {
                   onCheckedChange={(checked) => setSelectedItems({...selectedItems, kpis: checked as boolean})}
                 />
                 <label htmlFor="kpis" className="text-foreground cursor-pointer flex-1">
-                  Resumo de KPIs
+                  Resumo de KPIs e Métricas
                 </label>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -111,7 +112,7 @@ const GeradorRelatorios = () => {
                   onCheckedChange={(checked) => setSelectedItems({...selectedItems, abtest: checked as boolean})}
                 />
                 <label htmlFor="abtest" className="text-foreground cursor-pointer flex-1">
-                  Análise do Teste A/B
+                  Análise Comparativa de Campanhas
                 </label>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -126,12 +127,22 @@ const GeradorRelatorios = () => {
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                 <Checkbox 
-                  id="demographics" 
-                  checked={selectedItems.demographics}
-                  onCheckedChange={(checked) => setSelectedItems({...selectedItems, demographics: checked as boolean})}
+                  id="emotional" 
+                  checked={selectedItems.emotional}
+                  onCheckedChange={(checked) => setSelectedItems({...selectedItems, emotional: checked as boolean})}
                 />
-                <label htmlFor="demographics" className="text-foreground cursor-pointer flex-1">
-                  Análise Demográfica
+                <label htmlFor="emotional" className="text-foreground cursor-pointer flex-1">
+                  Análise de Reações Emocionais
+                </label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <Checkbox 
+                  id="positioning" 
+                  checked={selectedItems.positioning}
+                  onCheckedChange={(checked) => setSelectedItems({...selectedItems, positioning: checked as boolean})}
+                />
+                <label htmlFor="positioning" className="text-foreground cursor-pointer flex-1">
+                  Recomendações de Posicionamento
                 </label>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
