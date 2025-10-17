@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,62 +10,113 @@ const DemonstracaoAoVivo = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
-  const totalDuration = 20; // 20 seconds
+  const [cameraActive, setCameraActive] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState("NEUTRA");
+  const [emotionConfidence, setEmotionConfidence] = useState(0);
+  const [attentionLevel, setAttentionLevel] = useState(0);
+  const [emotionHistory, setEmotionHistory] = useState<any[]>([]);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const totalDuration = 60; // 60 seconds for real analysis
 
-  // Emotion mapping based on time
-  const getEmotionState = (time: number) => {
-    if (time < 5) return { label: "NEUTRA", color: "text-muted-foreground", bgColor: "bg-muted" };
-    if (time < 10) return { label: "CURIOSIDADE", color: "text-blue-600", bgColor: "bg-blue-50" };
-    if (time < 15) return { label: "INTERESSE POSITIVO", color: "text-success", bgColor: "bg-success-light" };
-    return { label: "PENSATIVA", color: "text-muted-foreground", bgColor: "bg-muted" };
+  // Emotion mapping for display
+  const getEmotionState = (emotion: string) => {
+    const emotionMap: Record<string, { label: string; color: string; bgColor: string }> = {
+      NEUTRA: { label: "NEUTRA", color: "text-muted-foreground", bgColor: "bg-muted" },
+      CURIOSIDADE: { label: "CURIOSIDADE", color: "text-blue-600", bgColor: "bg-blue-50" },
+      INTERESSE_POSITIVO: { label: "INTERESSE POSITIVO", color: "text-success", bgColor: "bg-success-light" },
+      SURPRESA: { label: "SURPRESA", color: "text-yellow-600", bgColor: "bg-yellow-50" },
+      PENSATIVA: { label: "PENSATIVA", color: "text-purple-600", bgColor: "bg-purple-50" },
+    };
+    return emotionMap[emotion] || emotionMap.NEUTRA;
   };
 
-  // Generate data for the timeline chart
+  // Generate data for the timeline chart from emotion history
   const generateChartData = () => {
-    const data = [];
-    for (let t = 0; t <= currentTime; t += 0.5) {
-      let curiosidade = 0;
-      let interesse = 0;
-      let neutralidade = 90;
+    return emotionHistory.map((item, index) => ({
+      time: index * 2, // Every 2 seconds
+      curiosidade: item.emotion === 'CURIOSIDADE' ? item.confidence : 0,
+      interesse: item.emotion === 'INTERESSE_POSITIVO' ? item.confidence : 0,
+      neutralidade: item.emotion === 'NEUTRA' ? item.confidence : 0,
+      atencao: item.attention
+    }));
+  };
 
-      if (t >= 5 && t <= 9) {
-        curiosidade = 20 + (t - 5) * 15;
-        neutralidade = 90 - (t - 5) * 15;
-      } else if (t > 9 && t < 10) {
-        curiosidade = 80 - (t - 9) * 30;
-        neutralidade = 30 + (t - 9) * 20;
-      }
-
-      if (t >= 8 && t <= 13) {
-        interesse = (t - 8) * 18;
-        if (t > 10) neutralidade = Math.max(10, 50 - (t - 10) * 8);
-      } else if (t > 13 && t <= 15) {
-        interesse = 90 - (t - 13) * 25;
-      }
-
-      if (t > 15) {
-        neutralidade = 10 + (t - 15) * 16;
-        interesse = Math.max(0, 40 - (t - 15) * 8);
-      }
-
-      data.push({
-        time: t,
-        curiosidade: Math.max(0, Math.min(100, curiosidade)),
-        interesse: Math.max(0, Math.min(100, interesse)),
-        neutralidade: Math.max(0, Math.min(100, neutralidade)),
+  // Start camera
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 640, height: 480 } 
       });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setCameraActive(true);
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Erro ao acessar a câmera. Por favor, permita o acesso.');
     }
-    return data;
   };
 
-  // Gaze position animation
-  const getGazePosition = (time: number) => {
-    const progress = (time / totalDuration) * 100;
-    const x = 20 + (progress * 0.6);
-    const y = 30 + Math.sin(progress / 10) * 20;
-    return { x: `${x}%`, y: `${y}%` };
+  // Stop camera
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
   };
 
+  // Capture frame and analyze
+  const captureAndAnalyze = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-emotion', {
+        body: { image: imageData }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setCurrentEmotion(data.emotion);
+        setEmotionConfidence(data.confidence);
+        setAttentionLevel(data.attention);
+        
+        setEmotionHistory(prev => [...prev, {
+          emotion: data.emotion,
+          confidence: data.confidence,
+          attention: data.attention,
+          timestamp: currentTime
+        }]);
+      }
+    } catch (error) {
+      console.error('Error analyzing emotion:', error);
+    }
+  };
+
+  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying && currentTime < totalDuration) {
@@ -74,6 +126,7 @@ const DemonstracaoAoVivo = () => {
           if (next >= totalDuration) {
             setIsPlaying(false);
             setShowSummary(true);
+            stopCamera();
             return totalDuration;
           }
           return next;
@@ -83,11 +136,46 @@ const DemonstracaoAoVivo = () => {
     return () => clearInterval(interval);
   }, [isPlaying, currentTime]);
 
-  const handlePlayPause = () => {
+  // Analysis interval effect
+  useEffect(() => {
+    if (isPlaying && cameraActive) {
+      analysisIntervalRef.current = setInterval(() => {
+        captureAndAnalyze();
+      }, 2000); // Analyze every 2 seconds
+    } else {
+      if (analysisIntervalRef.current) {
+        clearInterval(analysisIntervalRef.current);
+        analysisIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (analysisIntervalRef.current) {
+        clearInterval(analysisIntervalRef.current);
+      }
+    };
+  }, [isPlaying, cameraActive, currentTime]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const handlePlayPause = async () => {
     if (currentTime >= totalDuration) {
       setCurrentTime(0);
       setShowSummary(false);
+      setEmotionHistory([]);
     }
+    
+    if (!isPlaying && !cameraActive) {
+      await startCamera();
+    } else if (isPlaying) {
+      stopCamera();
+    }
+    
     setIsPlaying(!isPlaying);
   };
 
@@ -96,9 +184,7 @@ const DemonstracaoAoVivo = () => {
     setShowSummary(false);
   };
 
-  const emotionState = getEmotionState(currentTime);
-  const confidence = 92 + Math.sin(currentTime) * 6;
-  const gazePos = getGazePosition(currentTime);
+  const emotionState = getEmotionState(currentEmotion);
   const chartData = generateChartData();
 
   return (
@@ -114,77 +200,28 @@ const DemonstracaoAoVivo = () => {
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Simulação da Captura</h2>
             
-            {/* Video Placeholder with Face Animation */}
+            {/* Video Feed */}
             <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg aspect-video flex items-center justify-center overflow-hidden">
-              {/* Simulated face with emotion states */}
-              <div className="relative w-48 h-48">
-                {/* Face outline */}
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <ellipse cx="50" cy="50" rx="30" ry="40" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
-                  
-                  {/* Eyes */}
-                  <circle cx="40" cy="40" r="3" fill="rgba(255,255,255,0.6)">
-                    <animate attributeName="r" values="3;3.5;3" dur="3s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="60" cy="40" r="3" fill="rgba(255,255,255,0.6)">
-                    <animate attributeName="r" values="3;3.5;3" dur="3s" repeatCount="indefinite"/>
-                  </circle>
-                  
-                  {/* Eyebrows - animate based on emotion */}
-                  <path 
-                    d={currentTime >= 5 && currentTime < 15 ? "M 35 35 Q 40 32 45 35" : "M 35 36 Q 40 34 45 36"} 
-                    stroke="rgba(255,255,255,0.5)" 
-                    strokeWidth="1" 
-                    fill="none"
-                    className="transition-all duration-500"
-                  />
-                  <path 
-                    d={currentTime >= 5 && currentTime < 15 ? "M 55 35 Q 60 32 65 35" : "M 55 36 Q 60 34 65 36"} 
-                    stroke="rgba(255,255,255,0.5)" 
-                    strokeWidth="1" 
-                    fill="none"
-                    className="transition-all duration-500"
-                  />
-                  
-                  {/* Mouth - changes with emotion */}
-                  <path 
-                    d={
-                      currentTime >= 10 && currentTime < 15 
-                        ? "M 38 60 Q 50 68 62 60" 
-                        : currentTime >= 5 && currentTime < 10 
-                        ? "M 38 60 Q 50 64 62 60"
-                        : "M 38 60 Q 50 60 62 60"
-                    }
-                    stroke="rgba(255,255,255,0.6)" 
-                    strokeWidth="1.5" 
-                    fill="none"
-                    className="transition-all duration-500"
-                  />
-                  
-                  {/* Facial landmark dots */}
-                  <circle cx="35" cy="38" r="1" fill="#60a5fa" opacity={isPlaying ? "1" : "0.3"}>
-                    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="65" cy="38" r="1" fill="#60a5fa" opacity={isPlaying ? "1" : "0.3"}>
-                    <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="50" cy="48" r="1" fill="#60a5fa" opacity={isPlaying ? "1" : "0.3"}>
-                    <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="38" cy="62" r="1" fill="#60a5fa" opacity={isPlaying ? "1" : "0.3"}>
-                    <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="62" cy="62" r="1" fill="#60a5fa" opacity={isPlaying ? "1" : "0.3"}>
-                    <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                </svg>
-              </div>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} className="hidden" />
 
               {/* Recording indicator */}
-              {isPlaying && (
+              {isPlaying && cameraActive && (
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-white text-sm font-medium">REC</span>
+                  <span className="text-white text-sm font-medium">ANALISANDO</span>
+                </div>
+              )}
+              
+              {!cameraActive && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-white text-lg">Clique em "Iniciar Análise" para ativar a câmera</p>
                 </div>
               )}
             </div>
@@ -205,6 +242,12 @@ const DemonstracaoAoVivo = () => {
                 </span>
               </div>
               
+              {cameraActive && (
+                <div className="text-sm text-blue-600 font-medium">
+                  ✓ Câmera ativa - Análise em tempo real
+                </div>
+              )}
+              
               <input
                 type="range"
                 min="0"
@@ -217,32 +260,18 @@ const DemonstracaoAoVivo = () => {
             </div>
           </Card>
 
-          {/* Gaze Tracking Widget */}
+          {/* Attention Level Widget */}
           <Card className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              Foco de Atenção
+              Nível de Atenção
             </h3>
-            <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg h-40 overflow-hidden">
-              {/* Gondola simulation */}
-              <div className="absolute inset-0 grid grid-cols-4 gap-1 p-2">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="bg-white/50 rounded border border-slate-300" />
-                ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Atenção Atual</span>
+                <span className="font-semibold">{attentionLevel.toFixed(0)}%</span>
               </div>
-              
-              {/* Gaze indicator */}
-              {currentTime > 0 && (
-                <div
-                  className="absolute w-6 h-6 transition-all duration-100"
-                  style={{ left: gazePos.x, top: gazePos.y }}
-                >
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-primary rounded-full opacity-30 animate-ping" />
-                    <div className="relative w-6 h-6 bg-primary rounded-full opacity-80 border-2 border-white" />
-                  </div>
-                </div>
-              )}
+              <Progress value={attentionLevel} className="h-3" />
             </div>
           </Card>
         </div>
@@ -260,9 +289,9 @@ const DemonstracaoAoVivo = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Confiança da IA</span>
-                <span className="font-semibold">{confidence.toFixed(1)}%</span>
+                <span className="font-semibold">{emotionConfidence.toFixed(1)}%</span>
               </div>
-              <Progress value={confidence} className="h-2" />
+              <Progress value={emotionConfidence} className="h-2" />
             </div>
 
             {/* Facial Landmark Graphic */}
@@ -333,25 +362,51 @@ const DemonstracaoAoVivo = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Tempo Total de Análise</p>
-                <p className="text-2xl font-bold">{showSummary ? "20 segundos" : "---"}</p>
+                <p className="text-2xl font-bold">{showSummary ? `${totalDuration} segundos` : "---"}</p>
               </div>
               
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Emoção Predominante</p>
-                <p className="text-2xl font-bold text-success">{showSummary ? "Interesse Positivo" : "---"}</p>
+                <p className="text-2xl font-bold text-success">
+                  {showSummary && emotionHistory.length > 0
+                    ? getEmotionState(
+                        emotionHistory.reduce((acc, curr) => 
+                          (emotionHistory.filter(e => e.emotion === curr.emotion).length > 
+                           emotionHistory.filter(e => e.emotion === acc).length) ? curr.emotion : acc
+                        , emotionHistory[0].emotion)
+                      ).label
+                    : "---"}
+                </p>
               </div>
               
               <div className="space-y-1 col-span-2">
-                <p className="text-sm text-muted-foreground">Pico de Engajamento</p>
-                <p className="text-xl font-bold">{showSummary ? "13 segundos" : "---"}</p>
-                <p className="text-sm text-muted-foreground">{showSummary ? "Produto: Sérum Anti-Idade" : ""}</p>
+                <p className="text-sm text-muted-foreground">Pico de Atenção</p>
+                <p className="text-xl font-bold">
+                  {showSummary && emotionHistory.length > 0
+                    ? `${Math.max(...emotionHistory.map(e => e.attention)).toFixed(0)}%`
+                    : "---"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {showSummary && emotionHistory.length > 0
+                    ? `Aos ${(emotionHistory.findIndex(e => e.attention === Math.max(...emotionHistory.map(h => h.attention))) * 2)} segundos`
+                    : ""}
+                </p>
               </div>
               
               <div className="space-y-2 col-span-2">
-                <p className="text-sm text-muted-foreground">Índice de Engajamento Final</p>
+                <p className="text-sm text-muted-foreground">Nível Médio de Atenção</p>
                 <div className="flex items-center gap-4">
-                  <Progress value={showSummary ? 88 : 0} className="h-3 flex-1" />
-                  <span className="text-3xl font-bold text-primary">{showSummary ? "88%" : "0%"}</span>
+                  <Progress 
+                    value={showSummary && emotionHistory.length > 0
+                      ? emotionHistory.reduce((acc, curr) => acc + curr.attention, 0) / emotionHistory.length
+                      : 0} 
+                    className="h-3 flex-1" 
+                  />
+                  <span className="text-3xl font-bold text-primary">
+                    {showSummary && emotionHistory.length > 0
+                      ? `${(emotionHistory.reduce((acc, curr) => acc + curr.attention, 0) / emotionHistory.length).toFixed(0)}%`
+                      : "0%"}
+                  </span>
                 </div>
               </div>
             </div>

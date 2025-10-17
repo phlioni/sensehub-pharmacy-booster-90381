@@ -1,0 +1,4 @@
+project_id = "bbddadd7e14a471392b586802fde279f"
+
+[functions.analyze-emotion]
+verify_jwt = false
