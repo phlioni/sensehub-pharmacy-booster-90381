@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { loadFaceModels, analyzeFace } from "@/utils/faceAnalysis";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Play, Pause } from "lucide-react";
@@ -51,6 +51,16 @@ const DemonstracaoAoVivo = () => {
   // Start camera
   const startCamera = async () => {
     try {
+      console.log('🎥 Iniciando câmera e carregando modelos de IA...');
+      
+      toast({
+        title: "Carregando IA",
+        description: "Carregando modelos de análise facial...",
+      });
+      
+      // Load face-api models first
+      await loadFaceModels();
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 640, height: 480 } 
       });
@@ -59,10 +69,19 @@ const DemonstracaoAoVivo = () => {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setCameraActive(true);
+        
+        toast({
+          title: "Câmera ativada",
+          description: "Análise facial com IA em tempo real",
+        });
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('Erro ao acessar a câmera. Por favor, permita o acesso.');
+      toast({
+        title: "Erro",
+        description: "Erro ao acessar a câmera",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,75 +97,41 @@ const DemonstracaoAoVivo = () => {
     setCameraActive(false);
   };
 
-  // Capture frame and analyze
+  // Capture frame and analyze with face-api
   const captureAndAnalyze = async () => {
-    console.log('🎥 Iniciando captura e análise...');
-    
-    if (!videoRef.current || !canvasRef.current) {
-      console.log('❌ Video ou canvas não disponível');
+    if (!videoRef.current) {
       return;
     }
 
-    const canvas = canvasRef.current;
     const video = videoRef.current;
     
     if (!video.videoWidth || !video.videoHeight) {
-      console.log('❌ Video ainda não está pronto');
       return;
     }
-    
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.log('❌ Contexto do canvas não disponível');
-      return;
-    }
-
-    ctx.drawImage(video, 0, 0);
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    console.log('📸 Frame capturado, tamanho:', imageData.length, 'bytes');
 
     try {
-      console.log('🚀 Enviando para análise...');
-      const { data, error } = await supabase.functions.invoke('analyze-emotion', {
-        body: { image: imageData }
-      });
+      const analysis = await analyzeFace(video);
 
-      if (error) {
-        console.error('❌ Erro na análise:', error);
-        toast({
-          title: "Erro na análise",
-          description: error.message || "Não foi possível analisar a emoção",
-          variant: "destructive",
-        });
+      if (!analysis) {
+        console.log('⚠️ Nenhum rosto detectado');
         return;
       }
 
-      console.log('✅ Análise recebida:', data);
+      console.log('✅ Análise facial:', analysis);
 
-      if (data) {
-        setCurrentEmotion(data.emotion);
-        setEmotionConfidence(data.confidence);
-        setAttentionLevel(data.attention);
-        
-        setEmotionHistory(prev => [...prev, {
-          emotion: data.emotion,
-          confidence: data.confidence,
-          attention: data.attention,
-          timestamp: currentTime
-        }]);
+      setCurrentEmotion(analysis.emotion);
+      setEmotionConfidence(analysis.confidence);
+      setAttentionLevel(analysis.attention);
+      
+      setEmotionHistory(prev => [...prev, {
+        emotion: analysis.emotion,
+        confidence: analysis.confidence,
+        attention: analysis.attention,
+        timestamp: currentTime
+      }]);
 
-        console.log('📊 Estado atualizado - Emoção:', data.emotion, 'Confiança:', data.confidence, 'Atenção:', data.attention);
-      }
     } catch (error) {
-      console.error('❌ Erro em captureAndAnalyze:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao processar análise",
-        variant: "destructive",
-      });
+      console.error('❌ Erro na análise facial:', error);
     }
   };
 
@@ -170,12 +155,12 @@ const DemonstracaoAoVivo = () => {
     return () => clearInterval(interval);
   }, [isPlaying, currentTime]);
 
-  // Analysis interval effect
+  // Analysis interval effect - analyze every second for real-time detection
   useEffect(() => {
     if (isPlaying && cameraActive) {
       analysisIntervalRef.current = setInterval(() => {
         captureAndAnalyze();
-      }, 2000); // Analyze every 2 seconds
+      }, 1000); // Analyze every second with face-api
     } else {
       if (analysisIntervalRef.current) {
         clearInterval(analysisIntervalRef.current);
