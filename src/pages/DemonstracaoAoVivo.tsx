@@ -337,17 +337,21 @@ const DemonstracaoAoVivo = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-left mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: '#612cb5' }}>SenseHub</h1>
-          <p className="text-sm text-muted-foreground">
-            by <span style={{ color: '#612cb5' }} className="font-semibold">Mosten</span>
-          </p>
-        </div>
+        {/* Header - Single Row */}
+        <div className="relative flex items-center mb-6">
+          {/* Left: SenseHub */}
+          <div className="text-left">
+            <h1 className="text-2xl font-bold" style={{ color: '#612cb5' }}>SenseHub</h1>
+            <p className="text-xs text-muted-foreground">
+              by <span style={{ color: '#612cb5' }} className="font-semibold">Mosten</span>
+            </p>
+          </div>
 
-        <div className="text-left">
-          <h2 className="text-4xl font-bold text-foreground mb-2">Sistema de Análise de Interesse</h2>
-          <p className="text-muted-foreground">Rastreamento de olhar e emoções em tempo real</p>
+          {/* Center: Sistema de Análise */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
+            <h2 className="text-3xl font-bold text-foreground">Sistema de Análise de Interesse</h2>
+            <p className="text-sm text-muted-foreground">Rastreamento de olhar e emoções em tempo real</p>
+          </div>
         </div>
 
         <Card className="p-6">
