@@ -165,7 +165,13 @@ const DemonstracaoAoVivo = () => {
           viewTime: prev.viewTime + 1,
           emotions: [...prev.emotions, emotion],
           attentionLevels: [...prev.attentionLevels, confidence],
-          showPromo: prev.viewTime + 1 >= 5,
+          showPromo: prev.viewTime + 1 >= 15,
+        }));
+        
+        // Remove promo do outro tênis
+        setRightSneaker(prev => ({
+          ...prev,
+          showPromo: false,
         }));
       } else if (direction === "direita") {
         gazeTimerRef.current.right += 1;
@@ -176,7 +182,13 @@ const DemonstracaoAoVivo = () => {
           viewTime: prev.viewTime + 1,
           emotions: [...prev.emotions, emotion],
           attentionLevels: [...prev.attentionLevels, confidence],
-          showPromo: prev.viewTime + 1 >= 5,
+          showPromo: prev.viewTime + 1 >= 15,
+        }));
+        
+        // Remove promo do outro tênis
+        setLeftSneaker(prev => ({
+          ...prev,
+          showPromo: false,
         }));
       } else {
         gazeTimerRef.current.left = 0;
@@ -269,7 +281,7 @@ const DemonstracaoAoVivo = () => {
         </div>
 
         <Card className="p-6">
-          <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg aspect-video flex items-center justify-center overflow-hidden mb-4">
+          <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg flex items-center justify-center overflow-hidden mb-4" style={{ height: '400px' }}>
             <video
               ref={videoRef}
               autoPlay
