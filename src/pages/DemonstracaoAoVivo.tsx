@@ -8,6 +8,7 @@ import * as faceapi from '@vladmandic/face-api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import tenisEsquerdo from "@/assets/tenis-esquerdo.webp";
 import tenisDireito from "@/assets/tenis-direito.webp";
+import mostenLogo from "@/assets/mosten-logo.png";
 
 type SneakerData = {
   viewTime: number;
@@ -336,8 +337,21 @@ const DemonstracaoAoVivo = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header with Logo */}
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <img 
+            src={mostenLogo} 
+            alt="Mosten Logo" 
+            className="h-16 w-auto"
+          />
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-primary">SenseHub</h1>
+            <p className="text-sm text-muted-foreground">by Mosten</p>
+          </div>
+        </div>
+
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Sistema de Análise de Interesse</h1>
+          <h2 className="text-4xl font-bold text-foreground mb-2">Sistema de Análise de Interesse</h2>
           <p className="text-muted-foreground">Rastreamento de olhar e emoções em tempo real</p>
         </div>
 
