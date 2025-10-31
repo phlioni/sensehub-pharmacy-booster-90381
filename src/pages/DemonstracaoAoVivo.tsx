@@ -339,13 +339,13 @@ const DemonstracaoAoVivo = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-left mb-8">
-          <h1 className="text-3xl font-bold text-primary">SenseHub</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#612cb5' }}>SenseHub</h1>
           <p className="text-sm text-muted-foreground">
             by <span style={{ color: '#612cb5' }} className="font-semibold">Mosten</span>
           </p>
         </div>
 
-        <div className="text-center">
+        <div className="text-left">
           <h2 className="text-4xl font-bold text-foreground mb-2">Sistema de Análise de Interesse</h2>
           <p className="text-muted-foreground">Rastreamento de olhar e emoções em tempo real</p>
         </div>
