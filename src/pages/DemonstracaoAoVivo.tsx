@@ -337,17 +337,12 @@ const DemonstracaoAoVivo = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with Logo */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <img 
-            src={mostenLogo} 
-            alt="Mosten Logo" 
-            className="h-16 w-auto"
-          />
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary">SenseHub</h1>
-            <p className="text-sm text-muted-foreground">by Mosten</p>
-          </div>
+        {/* Header */}
+        <div className="text-left mb-8">
+          <h1 className="text-3xl font-bold text-primary">SenseHub</h1>
+          <p className="text-sm text-muted-foreground">
+            by <span style={{ color: '#612cb5' }} className="font-semibold">Mosten</span>
+          </p>
         </div>
 
         <div className="text-center">
