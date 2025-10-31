@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as faceapi from '@vladmandic/face-api';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import tenisEsquerdo from "@/assets/tenis-esquerdo.webp";
 import tenisDireito from "@/assets/tenis-direito.webp";
 
@@ -13,6 +14,14 @@ type SneakerData = {
   emotions: string[];
   attentionLevels: number[];
   showPromo: boolean;
+};
+
+type ChartDataPoint = {
+  timestamp: number;
+  tenis: string;
+  atencao: number;
+  emocao: string;
+  emocaoValor: number;
 };
 
 const DemonstracaoAoVivo = () => {
@@ -40,6 +49,8 @@ const DemonstracaoAoVivo = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const gazeTimerRef = useRef<{ left: number; right: number }>({ left: 0, right: 0 });
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const startTimeRef = useRef<number>(Date.now());
 
   const startCamera = async () => {
     try {
@@ -150,11 +161,26 @@ const DemonstracaoAoVivo = () => {
       setCurrentGaze(direction);
 
       const expressions = detections.expressions;
-      const dominantExpression = Object.entries(expressions).reduce((a, b) => 
-        expressions[a[0] as keyof typeof expressions] > expressions[b[0] as keyof typeof expressions] ? a : b
-      );
+      const expressionEntries = Object.entries(expressions);
+      const dominantExpression = expressionEntries.reduce((a, b) => a[1] > b[1] ? a : b);
       const emotion = dominantExpression[0].toUpperCase();
       const confidence = dominantExpression[1] * 100;
+      
+      console.log('😊 Emoção detectada:', emotion, 'confiança:', confidence.toFixed(1) + '%');
+      
+      // Map emotion to numeric value for chart
+      const emotionMap: Record<string, number> = {
+        'HAPPY': 100,
+        'SURPRISED': 80,
+        'NEUTRAL': 50,
+        'SAD': 30,
+        'ANGRY': 10,
+        'DISGUSTED': 20,
+        'FEARFUL': 40
+      };
+      const emotionValue = emotionMap[emotion] || 50;
+      
+      const currentTime = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
       if (direction === "esquerda") {
         gazeTimerRef.current.left += 1;
@@ -167,6 +193,15 @@ const DemonstracaoAoVivo = () => {
           attentionLevels: [...prev.attentionLevels, confidence],
           showPromo: prev.viewTime + 1 >= 15,
         }));
+        
+        // Adicionar ao gráfico
+        setChartData(prev => [...prev, {
+          timestamp: currentTime,
+          tenis: "Adidas Campus",
+          atencao: confidence,
+          emocao: emotion,
+          emocaoValor: emotionValue
+        }]);
         
         // Remove promo do outro tênis
         setRightSneaker(prev => ({
@@ -184,6 +219,15 @@ const DemonstracaoAoVivo = () => {
           attentionLevels: [...prev.attentionLevels, confidence],
           showPromo: prev.viewTime + 1 >= 15,
         }));
+        
+        // Adicionar ao gráfico
+        setChartData(prev => [...prev, {
+          timestamp: currentTime,
+          tenis: "Nike Air Force",
+          atencao: confidence,
+          emocao: emotion,
+          emocaoValor: emotionValue
+        }]);
         
         // Remove promo do outro tênis
         setLeftSneaker(prev => ({
@@ -256,6 +300,8 @@ const DemonstracaoAoVivo = () => {
     });
     gazeTimerRef.current = { left: 0, right: 0 };
     setCurrentGaze("centro");
+    setChartData([]);
+    startTimeRef.current = Date.now();
   };
 
   const getAverageAttention = (data: SneakerData) => {
@@ -412,6 +458,78 @@ const DemonstracaoAoVivo = () => {
             </div>
           </Card>
         </div>
+
+        {/* Real-time Chart */}
+        <Card className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Análise em Tempo Real</h2>
+          <p className="text-muted-foreground mb-6">
+            Correlação entre interesse, emoção e tênis ao longo do tempo
+          </p>
+          
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+              <XAxis 
+                dataKey="timestamp" 
+                label={{ value: 'Tempo (s)', position: 'insideBottom', offset: -5 }}
+              />
+              <YAxis 
+                yAxisId="left"
+                label={{ value: 'Atenção (%)', angle: -90, position: 'insideLeft' }}
+                domain={[0, 100]}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                label={{ value: 'Emoção (Intensidade)', angle: 90, position: 'insideRight' }}
+                domain={[0, 100]}
+              />
+              <Tooltip 
+                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc' }}
+                formatter={(value: any, name: string, props: any) => {
+                  if (name === 'atencao') return [`${value.toFixed(1)}%`, 'Atenção'];
+                  if (name === 'emocaoValor') return [`${props.payload.emocao}`, 'Emoção'];
+                  return [value, name];
+                }}
+                labelFormatter={(label) => `Tempo: ${label}s`}
+              />
+              <Legend />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="atencao" 
+                stroke="#3b82f6" 
+                strokeWidth={2}
+                name="Atenção (%)"
+                dot={{ r: 3 }}
+              />
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="emocaoValor" 
+                stroke="#22c55e" 
+                strokeWidth={2}
+                name="Emoção"
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">Dados Adidas Campus</h3>
+              <div className="text-sm text-blue-700">
+                {chartData.filter(d => d.tenis === "Adidas Campus").length} registros
+              </div>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg">
+              <h3 className="font-semibold text-green-900 mb-2">Dados Nike Air Force</h3>
+              <div className="text-sm text-green-700">
+                {chartData.filter(d => d.tenis === "Nike Air Force").length} registros
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
