@@ -163,20 +163,33 @@ const DemonstracaoAoVivo = () => {
       const expressions = detections.expressions;
       const expressionEntries = Object.entries(expressions);
       const dominantExpression = expressionEntries.reduce((a, b) => a[1] > b[1] ? a : b);
-      const emotion = dominantExpression[0].toUpperCase();
+      const emotionKey = dominantExpression[0];
       const confidence = dominantExpression[1] * 100;
+      
+      // Traduzir emoções para português
+      const emotionTranslation: Record<string, string> = {
+        'happy': 'FELIZ',
+        'sad': 'TRISTE',
+        'angry': 'BRAVO',
+        'surprised': 'SURPRESO',
+        'neutral': 'NEUTRO',
+        'disgusted': 'DESGOSTOSO',
+        'fearful': 'TEMEROSO'
+      };
+      
+      const emotion = emotionTranslation[emotionKey] || 'NEUTRO';
       
       console.log('😊 Emoção detectada:', emotion, 'confiança:', confidence.toFixed(1) + '%');
       
       // Map emotion to numeric value for chart
       const emotionMap: Record<string, number> = {
-        'HAPPY': 100,
-        'SURPRISED': 80,
-        'NEUTRAL': 50,
-        'SAD': 30,
-        'ANGRY': 10,
-        'DISGUSTED': 20,
-        'FEARFUL': 40
+        'FELIZ': 100,
+        'SURPRESO': 80,
+        'NEUTRO': 50,
+        'TRISTE': 30,
+        'BRAVO': 10,
+        'DESGOSTOSO': 20,
+        'TEMEROSO': 40
       };
       const emotionValue = emotionMap[emotion] || 50;
       
@@ -315,7 +328,9 @@ const DemonstracaoAoVivo = () => {
     data.emotions.forEach(e => {
       counts[e] = (counts[e] || 0) + 1;
     });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    console.log('📊 Contagem de emoções:', counts, 'Predominante:', sorted[0]);
+    return sorted.length > 0 ? sorted[0][0] : "---";
   };
 
   return (
@@ -487,8 +502,12 @@ const DemonstracaoAoVivo = () => {
               <Tooltip 
                 contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc' }}
                 formatter={(value: any, name: string, props: any) => {
-                  if (name === 'atencao') return [`${value.toFixed(1)}%`, 'Atenção'];
-                  if (name === 'emocaoValor') return [`${props.payload.emocao}`, 'Emoção'];
+                  if (name === 'Atenção (%)') return [`${Number(value).toFixed(1)}%`, 'Atenção'];
+                  if (name === 'Emoção') {
+                    const emocao = props.payload.emocao || 'NEUTRO';
+                    const valor = Number(value).toFixed(0);
+                    return [`${emocao} (${valor})`, 'Emoção'];
+                  }
                   return [value, name];
                 }}
                 labelFormatter={(label) => `Tempo: ${label}s`}
