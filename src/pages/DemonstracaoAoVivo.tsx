@@ -146,13 +146,32 @@ const DemonstracaoAoVivo = () => {
         if (faceAbsentCountRef.current >= 5) {
           currentPersonRef.current += 1;
           faceAbsentCountRef.current = 0;
+          console.log('👤 Próxima pessoa terá ID:', currentPersonRef.current);
         }
         return;
       }
       
       // Rosto detectado - resetar contador de ausência
+      const personId = currentPersonRef.current;
+      const wasAbsent = faceAbsentCountRef.current > 0;
       faceAbsentCountRef.current = 0;
       lastFaceDetectedRef.current = Date.now();
+      
+      // Registrar pessoa na primeira detecção
+      setPersonSessions(prev => {
+        const exists = prev.find(p => p.id === personId);
+        if (!exists) {
+          console.log('👤 Nova pessoa registrada:', personId);
+          return [...prev, { 
+            id: personId, 
+            startTime: Math.floor((Date.now() - startTimeRef.current) / 1000), 
+            leftTime: 0, 
+            rightTime: 0, 
+            dominantEmotion: 'NEUTRO' 
+          }];
+        }
+        return prev;
+      });
 
       const landmarks = detections.landmarks;
       const nose = landmarks.getNose();
@@ -218,7 +237,6 @@ const DemonstracaoAoVivo = () => {
       const emotionValue = emotionMap[emotion] || 50;
       
       const currentTime = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const personId = currentPersonRef.current;
 
       if (direction === "esquerda") {
         gazeTimerRef.current.left += 1;
@@ -544,37 +562,42 @@ const DemonstracaoAoVivo = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {/* Person Scatter Chart */}
           <PersonScatterChart sessions={personSessions} />
           
           {/* Real-time Line Chart */}
-          <Card className="p-4">
-            <h3 className="text-lg font-bold mb-2">Análise em Tempo Real</h3>
-            <p className="text-xs text-muted-foreground mb-4">
+          <Card className="p-3 md:p-4">
+            <h3 className="text-base md:text-lg font-bold mb-1 md:mb-2">Análise em Tempo Real</h3>
+            <p className="text-xs text-muted-foreground mb-2 md:mb-4">
               Correlação entre interesse, emoção e tênis ao longo do tempo
             </p>
             
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={chartData}>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                 <XAxis 
                   dataKey="timestamp" 
-                  label={{ value: 'Tempo (s)', position: 'insideBottom', offset: -5 }}
+                  tick={{ fontSize: 10 }}
+                  label={{ value: 'Tempo (s)', position: 'insideBottom', offset: -5, fontSize: 10 }}
                 />
                 <YAxis 
                   yAxisId="left"
-                  label={{ value: 'Atenção (%)', angle: -90, position: 'insideLeft' }}
+                  tick={{ fontSize: 10 }}
+                  width={35}
+                  label={{ value: 'Atenção (%)', angle: -90, position: 'insideLeft', fontSize: 10 }}
                   domain={[0, 100]}
                 />
                 <YAxis 
                   yAxisId="right"
                   orientation="right"
-                  label={{ value: 'Emoção', angle: 90, position: 'insideRight' }}
+                  tick={{ fontSize: 10 }}
+                  width={35}
+                  label={{ value: 'Emoção', angle: 90, position: 'insideRight', fontSize: 10 }}
                   domain={[0, 100]}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc', fontSize: '11px' }}
                   formatter={(value: any, name: string, props: any) => {
                     if (name === 'Atenção (%)') return [`${Number(value).toFixed(1)}%`, 'Atenção'];
                     if (name === 'Emoção') {
@@ -586,7 +609,7 @@ const DemonstracaoAoVivo = () => {
                   }}
                   labelFormatter={(label) => `Tempo: ${label}s`}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} iconSize={8} />
                 <Line 
                   yAxisId="left"
                   type="monotone" 
@@ -594,7 +617,7 @@ const DemonstracaoAoVivo = () => {
                   stroke="#3b82f6" 
                   strokeWidth={2}
                   name="Atenção (%)"
-                  dot={{ r: 3 }}
+                  dot={{ r: 2 }}
                 />
                 <Line 
                   yAxisId="right"
@@ -603,20 +626,20 @@ const DemonstracaoAoVivo = () => {
                   stroke="#22c55e" 
                   strokeWidth={2}
                   name="Emoção"
-                  dot={{ r: 3 }}
+                  dot={{ r: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
             
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-2 md:mt-4 grid grid-cols-2 gap-2">
               <div className="p-2 bg-blue-50 rounded">
-                <h4 className="font-semibold text-blue-900 text-sm">Adidas Campus</h4>
+                <h4 className="font-semibold text-blue-900 text-xs md:text-sm">Adidas Campus</h4>
                 <div className="text-xs text-blue-700">
                   {chartData.filter(d => d.tenis === "Adidas Campus").length} registros
                 </div>
               </div>
               <div className="p-2 bg-green-50 rounded">
-                <h4 className="font-semibold text-green-900 text-sm">Nike Air Force</h4>
+                <h4 className="font-semibold text-green-900 text-xs md:text-sm">Nike Air Force</h4>
                 <div className="text-xs text-green-700">
                   {chartData.filter(d => d.tenis === "Nike Air Force").length} registros
                 </div>
