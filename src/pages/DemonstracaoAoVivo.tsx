@@ -64,6 +64,7 @@ const DemonstracaoAoVivo = () => {
   const currentPersonRef = useRef<number>(1);
   const lastFaceDetectedRef = useRef<number>(Date.now());
   const faceAbsentCountRef = useRef<number>(0);
+  const lastFaceDescriptorRef = useRef<Float32Array | null>(null);
 
   const startCamera = async () => {
     try {
@@ -137,7 +138,8 @@ const DemonstracaoAoVivo = () => {
       const detections = await faceapi
         .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
-        .withFaceExpressions();
+        .withFaceExpressions()
+        .withFaceDescriptor();
 
       if (!detections) {
         console.log('⚠️ Nenhum rosto detectado');
@@ -146,18 +148,35 @@ const DemonstracaoAoVivo = () => {
         if (faceAbsentCountRef.current >= 5) {
           currentPersonRef.current += 1;
           faceAbsentCountRef.current = 0;
+          lastFaceDescriptorRef.current = null;
           console.log('👤 Próxima pessoa terá ID:', currentPersonRef.current);
         }
         return;
       }
       
+      // Comparar face descriptor para detectar nova pessoa
+      const currentDescriptor = detections.descriptor;
+      let isNewPerson = false;
+      
+      if (lastFaceDescriptorRef.current) {
+        const distance = faceapi.euclideanDistance(lastFaceDescriptorRef.current, currentDescriptor);
+        console.log('📏 Distância entre rostos:', distance.toFixed(3));
+        // Se a distância for maior que 0.5, provavelmente é uma pessoa diferente
+        if (distance > 0.5) {
+          currentPersonRef.current += 1;
+          isNewPerson = true;
+          console.log('🔄 Pessoa diferente detectada! Nova ID:', currentPersonRef.current);
+        }
+      }
+      
+      lastFaceDescriptorRef.current = currentDescriptor;
+      
       // Rosto detectado - resetar contador de ausência
       const personId = currentPersonRef.current;
-      const wasAbsent = faceAbsentCountRef.current > 0;
       faceAbsentCountRef.current = 0;
       lastFaceDetectedRef.current = Date.now();
       
-      // Registrar pessoa na primeira detecção
+      // Registrar pessoa na primeira detecção ou quando é nova pessoa
       setPersonSessions(prev => {
         const exists = prev.find(p => p.id === personId);
         if (!exists) {
@@ -384,6 +403,7 @@ const DemonstracaoAoVivo = () => {
     setPersonSessions([]);
     currentPersonRef.current = 1;
     faceAbsentCountRef.current = 0;
+    lastFaceDescriptorRef.current = null;
     startTimeRef.current = Date.now();
   };
 
