@@ -65,6 +65,8 @@ const DemonstracaoAoVivo = () => {
   const lastFaceDetectedRef = useRef<number>(Date.now());
   const faceAbsentCountRef = useRef<number>(0);
   const lastFaceDescriptorRef = useRef<Float32Array | null>(null);
+  const newPersonConfirmCountRef = useRef<number>(0);
+  const candidateDescriptorRef = useRef<Float32Array | null>(null);
 
   const startCamera = async () => {
     try {
@@ -149,6 +151,8 @@ const DemonstracaoAoVivo = () => {
           currentPersonRef.current += 1;
           faceAbsentCountRef.current = 0;
           lastFaceDescriptorRef.current = null;
+          candidateDescriptorRef.current = null;
+          newPersonConfirmCountRef.current = 0;
           console.log('👤 Próxima pessoa terá ID:', currentPersonRef.current);
         }
         return;
@@ -156,27 +160,60 @@ const DemonstracaoAoVivo = () => {
       
       // Comparar face descriptor para detectar nova pessoa
       const currentDescriptor = detections.descriptor;
-      let isNewPerson = false;
+      const DISTANCE_THRESHOLD = 0.6; // Limiar para considerar pessoa diferente
+      const CONFIRMATION_FRAMES = 3; // Frames consecutivos para confirmar nova pessoa
       
       if (lastFaceDescriptorRef.current) {
         const distance = faceapi.euclideanDistance(lastFaceDescriptorRef.current, currentDescriptor);
         console.log('📏 Distância entre rostos:', distance.toFixed(3));
-        // Se a distância for maior que 0.5, provavelmente é uma pessoa diferente
-        if (distance > 0.5) {
-          currentPersonRef.current += 1;
-          isNewPerson = true;
-          console.log('🔄 Pessoa diferente detectada! Nova ID:', currentPersonRef.current);
+        
+        if (distance > DISTANCE_THRESHOLD) {
+          // Possível nova pessoa - verificar se é consistente
+          if (candidateDescriptorRef.current) {
+            const candidateDistance = faceapi.euclideanDistance(candidateDescriptorRef.current, currentDescriptor);
+            console.log('📏 Distância do candidato:', candidateDistance.toFixed(3));
+            
+            if (candidateDistance < 0.4) {
+              // Mesma pessoa candidata detectada novamente
+              newPersonConfirmCountRef.current += 1;
+              console.log('🔍 Confirmações de nova pessoa:', newPersonConfirmCountRef.current);
+              
+              if (newPersonConfirmCountRef.current >= CONFIRMATION_FRAMES) {
+                // Confirmado: é uma nova pessoa
+                currentPersonRef.current += 1;
+                lastFaceDescriptorRef.current = currentDescriptor;
+                candidateDescriptorRef.current = null;
+                newPersonConfirmCountRef.current = 0;
+                console.log('✅ Nova pessoa CONFIRMADA! ID:', currentPersonRef.current);
+              }
+            } else {
+              // Candidato diferente - reiniciar
+              candidateDescriptorRef.current = currentDescriptor;
+              newPersonConfirmCountRef.current = 1;
+            }
+          } else {
+            // Primeiro frame de possível nova pessoa
+            candidateDescriptorRef.current = currentDescriptor;
+            newPersonConfirmCountRef.current = 1;
+            console.log('🔍 Candidato a nova pessoa detectado');
+          }
+        } else {
+          // Mesma pessoa - resetar contadores de candidato
+          candidateDescriptorRef.current = null;
+          newPersonConfirmCountRef.current = 0;
+          lastFaceDescriptorRef.current = currentDescriptor; // Atualizar descriptor
         }
+      } else {
+        // Primeiro rosto detectado
+        lastFaceDescriptorRef.current = currentDescriptor;
       }
-      
-      lastFaceDescriptorRef.current = currentDescriptor;
       
       // Rosto detectado - resetar contador de ausência
       const personId = currentPersonRef.current;
       faceAbsentCountRef.current = 0;
       lastFaceDetectedRef.current = Date.now();
       
-      // Registrar pessoa na primeira detecção ou quando é nova pessoa
+      // Registrar pessoa na primeira detecção
       setPersonSessions(prev => {
         const exists = prev.find(p => p.id === personId);
         if (!exists) {
@@ -404,6 +441,8 @@ const DemonstracaoAoVivo = () => {
     currentPersonRef.current = 1;
     faceAbsentCountRef.current = 0;
     lastFaceDescriptorRef.current = null;
+    candidateDescriptorRef.current = null;
+    newPersonConfirmCountRef.current = 0;
     startTimeRef.current = Date.now();
   };
 
