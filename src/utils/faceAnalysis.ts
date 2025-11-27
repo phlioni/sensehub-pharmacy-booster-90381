@@ -11,10 +11,11 @@ export async function loadFaceModels() {
     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
     faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
   ]);
   
   modelsLoaded = true;
-  console.log('✅ Face-api models loaded');
+  console.log('✅ Face-api models loaded (incluindo reconhecimento)');
 }
 
 export interface EmotionAnalysis {
