@@ -27,32 +27,38 @@ const PersonScatterChart = ({ sessions }: PersonScatterChartProps) => {
   }));
 
   return (
-    <Card className="p-4">
-      <h3 className="text-lg font-bold mb-2">Pessoas vs Tempo de Visualização</h3>
-      <p className="text-xs text-muted-foreground mb-4">
+    <Card className="p-3 md:p-4">
+      <h3 className="text-base md:text-lg font-bold mb-1 md:mb-2">Pessoas vs Tempo de Visualização</h3>
+      <p className="text-xs text-muted-foreground mb-2 md:mb-4">
         Cada ponto representa uma pessoa e quanto tempo olhou para cada tênis
       </p>
       
-      <ResponsiveContainer width="100%" height={250}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+      <ResponsiveContainer width="100%" height={200}>
+        <ScatterChart margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             type="number" 
             dataKey="pessoa" 
             name="Pessoa" 
-            label={{ value: 'Pessoa #', position: 'bottom', offset: 0 }}
+            tick={{ fontSize: 10 }}
+            label={{ value: 'Pessoa #', position: 'insideBottom', offset: -5, fontSize: 10 }}
           />
           <YAxis 
             type="number" 
             dataKey="tempo" 
             name="Tempo (s)" 
-            label={{ value: 'Tempo (s)', angle: -90, position: 'insideLeft' }}
+            tick={{ fontSize: 10 }}
+            width={35}
+            label={{ value: 'Tempo (s)', angle: -90, position: 'insideLeft', fontSize: 10 }}
           />
           <Tooltip 
             cursor={{ strokeDasharray: '3 3' }}
             formatter={(value: any, name: string) => [`${value}s`, name]}
           />
-          <Legend />
+          <Legend 
+            wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+            iconSize={8}
+          />
           <Scatter 
             name="Adidas Campus" 
             data={leftData} 
@@ -66,16 +72,16 @@ const PersonScatterChart = ({ sessions }: PersonScatterChartProps) => {
         </ScatterChart>
       </ResponsiveContainer>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+      <div className="mt-2 md:mt-4 grid grid-cols-2 gap-2 text-xs md:text-sm">
         <div className="p-2 bg-green-50 rounded">
           <span className="font-semibold text-green-800">Adidas:</span>
-          <span className="text-green-700 ml-2">
+          <span className="text-green-700 ml-1 md:ml-2">
             {sessions.filter(s => s.leftTime > 0).length} pessoas
           </span>
         </div>
         <div className="p-2 bg-blue-50 rounded">
           <span className="font-semibold text-blue-800">Nike:</span>
-          <span className="text-blue-700 ml-2">
+          <span className="text-blue-700 ml-1 md:ml-2">
             {sessions.filter(s => s.rightTime > 0).length} pessoas
           </span>
         </div>
