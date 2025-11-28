@@ -67,6 +67,10 @@ const DemonstracaoAoVivo = () => {
   const lastFaceDescriptorRef = useRef<Float32Array | null>(null);
   const newPersonConfirmCountRef = useRef<number>(0);
   const candidateDescriptorRef = useRef<Float32Array | null>(null);
+  const emotionHistoryRef = useRef<string[]>([]);
+  const expressionSmoothRef = useRef<Record<string, number>>({
+    happy: 0, sad: 0, angry: 0, surprised: 0, neutral: 0, disgusted: 0, fearful: 0
+  });
 
   const startCamera = async () => {
     try {
@@ -260,8 +264,30 @@ const DemonstracaoAoVivo = () => {
       setCurrentGaze(direction);
 
       const expressions = detections.expressions;
-      const expressionEntries = Object.entries(expressions);
-      const dominantExpression = expressionEntries.reduce((a, b) => a[1] > b[1] ? a : b);
+      
+      // Suavizar expressões com média móvel exponencial (EMA)
+      const smoothingFactor = 0.4; // Maior = mais responsivo, menor = mais suave
+      const smoothedExpressions: Record<string, number> = {};
+      
+      Object.entries(expressions).forEach(([key, value]) => {
+        const prevValue = expressionSmoothRef.current[key] || 0;
+        const newValue = prevValue * (1 - smoothingFactor) + (value as number) * smoothingFactor;
+        smoothedExpressions[key] = newValue;
+        expressionSmoothRef.current[key] = newValue;
+      });
+      
+      console.log('📊 Expressões suavizadas:', Object.entries(smoothedExpressions).map(([k, v]) => `${k}: ${(v * 100).toFixed(0)}%`).join(', '));
+      
+      // Encontrar emoção dominante com threshold mínimo
+      const MIN_CONFIDENCE_THRESHOLD = 0.15; // Pelo menos 15% de confiança
+      const expressionEntries = Object.entries(smoothedExpressions);
+      let dominantExpression = expressionEntries.reduce((a, b) => a[1] > b[1] ? a : b);
+      
+      // Se a confiança for muito baixa, considerar neutro
+      if (dominantExpression[1] < MIN_CONFIDENCE_THRESHOLD) {
+        dominantExpression = ['neutral', smoothedExpressions['neutral'] || 0.5];
+      }
+      
       const emotionKey = dominantExpression[0];
       const confidence = dominantExpression[1] * 100;
       
@@ -276,9 +302,22 @@ const DemonstracaoAoVivo = () => {
         'fearful': 'TEMEROSO'
       };
       
-      const emotion = emotionTranslation[emotionKey] || 'NEUTRO';
+      const rawEmotion = emotionTranslation[emotionKey] || 'NEUTRO';
       
-      console.log('😊 Emoção detectada:', emotion, 'confiança:', confidence.toFixed(1) + '%');
+      // Estabilizar emoção com histórico (evitar oscilações rápidas)
+      emotionHistoryRef.current.push(rawEmotion);
+      if (emotionHistoryRef.current.length > 3) {
+        emotionHistoryRef.current.shift();
+      }
+      
+      // Usar emoção mais frequente no histórico
+      const emotionCounts: Record<string, number> = {};
+      emotionHistoryRef.current.forEach(e => {
+        emotionCounts[e] = (emotionCounts[e] || 0) + 1;
+      });
+      const emotion = Object.entries(emotionCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+      
+      console.log('😊 Emoção detectada:', emotion, 'confiança:', confidence.toFixed(1) + '%', 'histórico:', emotionHistoryRef.current.join(','));
       
       // Map emotion to numeric value for chart
       const emotionMap: Record<string, number> = {
@@ -443,6 +482,10 @@ const DemonstracaoAoVivo = () => {
     lastFaceDescriptorRef.current = null;
     candidateDescriptorRef.current = null;
     newPersonConfirmCountRef.current = 0;
+    emotionHistoryRef.current = [];
+    expressionSmoothRef.current = {
+      happy: 0, sad: 0, angry: 0, surprised: 0, neutral: 0, disgusted: 0, fearful: 0
+    };
     startTimeRef.current = Date.now();
   };
 
