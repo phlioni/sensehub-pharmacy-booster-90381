@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Share2, Download } from "lucide-react";
 import { toast } from "sonner";
+import { SampleDataNotice } from "@/components/dashboard/ServiceStateNotice";
 
 const GeradorRelatorios = () => {
   const [selectedItems, setSelectedItems] = useState({
@@ -34,6 +35,11 @@ const GeradorRelatorios = () => {
         <h1 className="text-3xl font-bold text-foreground mb-2">Gerador de Relatórios</h1>
         <p className="text-muted-foreground">Crie relatórios personalizados para apresentar aos seus clientes</p>
       </div>
+
+      <SampleDataNotice>
+        A prévia e a exportação de PDF ainda são um protótipo. Os dados de origem (retenção, emoção,
+        demografia, insights) já vêm do serviço SenseHub Vision nas páginas de análise.
+      </SampleDataNotice>
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left: Configuration Steps */}

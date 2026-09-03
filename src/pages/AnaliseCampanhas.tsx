@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Lightbulb, TrendingUp, Clock, Target } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import InteractiveHeatmap from "@/components/dashboard/InteractiveHeatmap";
+import { SampleDataNotice } from "@/components/dashboard/ServiceStateNotice";
 
 const AnaliseCampanhas = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>("vitamina-c");
@@ -31,6 +32,12 @@ const AnaliseCampanhas = () => {
         <h1 className="text-3xl font-bold text-foreground mb-2">Análise de Campanhas</h1>
         <p className="text-muted-foreground">Análise profunda de campanhas de marketing e suas métricas emocionais</p>
       </div>
+
+      <SampleDataNotice>
+        Esta página consolida campanhas ao longo do tempo. Os números reais por produto já estão
+        em <strong>Análise de Produtos</strong> e <strong>Dashboard Geral</strong>; aqui os blocos de
+        comparação A/B ainda usam dados de amostra até haver histórico suficiente.
+      </SampleDataNotice>
 
       {/* Filter Bar */}
       <Card className="p-6">

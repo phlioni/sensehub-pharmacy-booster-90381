@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, PlayCircle, Megaphone, Tag, FileText, Presentation } from "lucide-react";
+import { LayoutDashboard, PlayCircle, Megaphone, Tag, FileText, Presentation, Camera } from "lucide-react";
 
 const Sidebar = () => {
   const navItems = [
     { path: "/", label: "Dashboard Geral", icon: LayoutDashboard },
     { path: "/demonstracao", label: "Demonstração ao Vivo", icon: PlayCircle },
+    { path: "/cameras", label: "Câmeras", icon: Camera },
     { path: "/campanhas", label: "Análise de Campanhas", icon: Megaphone },
     { path: "/produtos", label: "Análise de Produtos", icon: Tag },
     { path: "/relatorios", label: "Gerador de Relatórios", icon: FileText },

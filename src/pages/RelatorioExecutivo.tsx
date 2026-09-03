@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import InteractiveHeatmap from "@/components/dashboard/InteractiveHeatmap";
+import { SampleDataNotice } from "@/components/dashboard/ServiceStateNotice";
 
 const RelatorioExecutivo = () => {
   const attentionData = [
@@ -19,6 +20,11 @@ const RelatorioExecutivo = () => {
         </h1>
         <p className="text-muted-foreground">Período: Setembro/2025</p>
       </div>
+
+      <SampleDataNotice>
+        Relatório executivo com narrativa de amostra. As métricas quantitativas (retenção, taxa de
+        captura, valência, demografia) já são reais no Dashboard Geral e em Análise de Produtos.
+      </SampleDataNotice>
 
       {/* Section 1: High-Impact KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
