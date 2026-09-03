@@ -48,7 +48,9 @@ const DemonstracaoAoVivo = () => {
     active: boolean,
     ring: string,
     promoClass: string,
-  ) => (
+  ) => {
+    const promoReview = product?.promo_kind === "review";
+    return (
     <Card className="p-4 relative">
       <div className={`absolute inset-0 rounded-lg transition-all duration-300 ${active ? ring : ""}`} />
       <div className="relative z-10">
@@ -80,13 +82,27 @@ const DemonstracaoAoVivo = () => {
           </p>
         )}
         {product?.show_promo && (
-          <div className={`mt-2 p-2 rounded text-white text-xs ${promoClass}`}>
-            <p className="font-bold">🎉 Sugestão: destacar / promover este produto</p>
+          <div
+            className={`mt-2 p-2 rounded text-white text-xs ${
+              promoReview ? "bg-gradient-to-r from-amber-500 to-orange-600" : promoClass
+            }`}
+          >
+            {promoReview ? (
+              <p className="font-bold">
+                ⚠️ Muito tempo de atenção, mas sem reação positiva — algo não agradou. Revisar a
+                comunicação/campanha deste produto.
+              </p>
+            ) : (
+              <p className="font-bold">
+                🎉 Alto interesse com reação positiva — vale destacar / promover este produto.
+              </p>
+            )}
           </div>
         )}
       </div>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">

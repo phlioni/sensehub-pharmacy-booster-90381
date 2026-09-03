@@ -126,6 +126,7 @@ export type LiveSnapshot = {
     viewers_by_emotion: Record<string, number>;
     dominant_emotion: string;
     show_promo: boolean;
+    promo_kind: "highlight" | "review" | null;
   }[];
   persons: {
     id: number;
